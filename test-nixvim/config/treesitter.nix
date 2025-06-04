@@ -2,7 +2,9 @@
 {
   plugins.treesitter = {
     enable = true;
-    indent = true;
+    settings.indent ={
+      enable = true;
+    };
   };
 
   plugins.treesitter-textobjects = {
