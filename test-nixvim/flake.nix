@@ -1,101 +1,44 @@
 {
   description = "xhuyz nixvim configuration";
-
+  
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
-    nixpkgs-unstable.url = "github:/nixos/nixpkgs/nixos-unstable";
-    nixvim.url = "github:nix-community/nixvim";
-    nixpkgs-unstable.follows = "nixpkgs";
-    flake-parts.url = "github:hercules-ci/flake-parts";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixvim.url = "github:nix-community/nixvim/nixos-25.05";
   };
 
-  outputs =
-    {
-      nixpkgs,
-      nixpkgs-unstable,
-      nixvim,
-      flake-parts,
-      ...
-    }@inputs:
+  outputs = { nixpkgs, nixpkgs-unstable, nixvim, ... }:
     let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs { inherit system; };
+      pkgs-unstable = import nixpkgs-unstable { inherit system; };
       config = import ./config;
+      
+      nvim = nixvim.legacyPackages.${system}.makeNixvimWithModule {
+        inherit pkgs;
+        module = config;
+      };
     in
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
-      ];
-
-      perSystem =
-        { system, ... }:
-        let
-          pkgs = import nixpkgs { inherit system; };
-
-          pkgs-unstable = import nixpkgs-unstable { inherit system; };
-
-          asm-lsp-darwin_overlay = final: prev: {
-            asm-lsp = pkgs-unstable.asm-lsp.overrideAttrs (oldAttrs: {
-              buildInputs =
-                oldAttrs.buildInputs
-                ++ final.lib.optionals final.stdenv.isDarwin [
-                  final.darwin.apple_sdk.frameworks.CoreFoundation
-                  final.darwin.apple_sdk.frameworks.CoreServices
-                  final.darwin.apple_sdk.frameworks.SystemConfiguration
-                ];
-
-              # tests expect ~/.cache/asm-lsp to be writable
-              preCheck = ''
-                export HOME=$(mktemp -d)
-              '';
-
-              meta = oldAttrs.meta // {
-                platforms = final.lib.platforms.linux ++ final.lib.platforms.darwin;
-              };
-            });
-          };
-
-          bashdb-darwin_overlay = final: prev: {
-            bashdb = prev.bashdb.overrideAttrs (oldAttrs: {
-              meta = oldAttrs.meta // {
-                platforms = final.lib.platforms.linux ++ final.lib.platforms.darwin;
-              };
-            });
-          };
-
-          pkgsWithOverlays = pkgs.extend (
-            final: prev: asm-lsp-darwin_overlay final prev // bashdb-darwin_overlay final prev
-          );
-
-          nixvimLib = nixvim.lib.${system};
-          nvim = nixvim.legacyPackages.${system}.makeNixvimWithModule {
-            pkgs = pkgsWithOverlays;
-            module = config;
-          };
-        in
-        {
-          checks = {
-            default = nixvimLib.check.mkTestDerivationFromNvim {
-              inherit nvim;
-              name = "A nixvim configuration";
-            };
-          };
-
-          packages = {
-            default = nvim;
-          };
-
-          devShells.default = pkgs.mkShellNoCC {
-            shellHook =
-              # bash
-              ''
-                echo Welcome to a Neovim dev environment powered by Nixvim -- https://github.com/nix-community/nixvim
-                PS1="Nixvim: \\w \$ "
-                alias vim='nvim'
-              '';
-            packages = [ nvim ];
-          };
-        };
+    {
+      packages.${system}.default = nvim;
+      
+      checks.${system}.default = nixvim.lib.${system}.check.mkTestDerivationFromNvim {
+        inherit nvim;
+        name = "A nixvim configuration";
+      };
+      
+      devShells.${system}.default = pkgs.mkShellNoCC {
+        shellHook = ''
+          echo Welcome to a Neovim dev environment powered by Nixvim
+          PS1="Nixvim: \\w \$ "
+          alias vim='nvim'
+        '';
+        packages = [
+          nvim
+          pkgs.dotnet-sdk
+          pkgs.dotnet-aspnetcore
+          pkgs.nodePackages_latest.nodejs
+        ];
+      };
     };
 }

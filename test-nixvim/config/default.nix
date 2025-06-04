@@ -2,6 +2,7 @@
 {
   imports = [
     ./treesitter.nix
+    ./toggleterm.nix
   ];
 
   config = {
@@ -28,16 +29,15 @@
       foldlevelstart = 99;
     };
     extraPackages = with pkgs; [
-      #Sdks
-      dotnet-sdk # dotnet core sdk
-      dotnet-aspnetcore # dotnet core aspnet sdk
-      nodejs_24 # Node.js 24
-      go_1_23 # Go 1.23
+      # base
+      fzf
+      ripgrep
+      fd
       # Formatters
       stylua # Lua formatter
       csharpier # C# formatter
-      nixfmt-rfc-style # Nix formatter 
-      # Linters   
+      nixfmt-rfc-style # Nix formatter
+      # Linters
       golangci-lint # Go linter
       shellcheck # Shell script linter
       eslint_d # JavaScript/TypeScript linter
