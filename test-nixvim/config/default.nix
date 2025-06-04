@@ -1,6 +1,7 @@
 { pkgs, lib, ... }:
 {
   imports = [
+		./keymaps.nix
     ./treesitter.nix
     ./toggleterm.nix
   ];
