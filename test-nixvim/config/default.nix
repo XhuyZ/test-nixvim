@@ -4,6 +4,8 @@
 		./keymaps.nix
     ./treesitter.nix
     ./toggleterm.nix
+    ./themes.nix
+    ./lazygit.nix
   ];
 
   config = {
